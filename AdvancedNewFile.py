@@ -2,7 +2,6 @@ import os
 import sublime
 import sublime_plugin
 import re
-import codecs
 
 SETTINGS = [
     "alias",
