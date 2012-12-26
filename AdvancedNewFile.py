@@ -2,6 +2,9 @@ import os
 import sublime
 import sublime_plugin
 import re
+import threading
+
+view_activated = threading.Event()
 
 SETTINGS = [
     "alias",
@@ -232,8 +235,11 @@ class AdvancedNewFileCommand(sublime_plugin.WindowCommand):
                 else:
                     self.window.open_file(file_path)
         self.clear()
+
         if self.content_from_selection:
-            sublime.set_timeout(self.move_selection(file_path), 100)
+            view_activated.wait()
+            self.move_selection(file_path)
+            view_activated.clear()
 
     def move_selection(self,file_path):
         view = self.window.active_view()
@@ -524,3 +530,8 @@ def get_settings(view):
             print "AdvancedNewFile[Warning]: Invalid key '" + key + "' in project settings."
 
     return local_settings
+
+
+class ActivatingListener(sublime_plugin.EventListener):
+    def on_activated(self, view):
+        view_activated.set()
