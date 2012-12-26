@@ -2,6 +2,7 @@ import os
 import sublime
 import sublime_plugin
 import re
+import codecs
 
 SETTINGS = [
     "alias",
@@ -22,11 +23,13 @@ NIX_ROOT_REGEX = r"^/"
 
 
 class AdvancedNewFileCommand(sublime_plugin.WindowCommand):
-    def run(self, is_python=False):
+    def run(self, is_python=False, content_from_selection=False):
         self.root = None
         self.top_level_split_char = ":"
         self.is_python = is_python
         self.view = self.window.active_view()
+        self.content_from_selection = content_from_selection
+        self.text = self.view.substr(self.view.sel()[0])
 
         # Settings will be based on the view
         settings = get_settings(self.view)
@@ -230,6 +233,20 @@ class AdvancedNewFileCommand(sublime_plugin.WindowCommand):
                 else:
                     self.window.open_file(file_path)
         self.clear()
+        if self.content_from_selection:
+            sublime.set_timeout(self.move_selection(file_path), 100)
+
+    def move_selection(self,file_path):
+        view = self.window.active_view()
+        edit = view.begin_edit("Inserting content")
+        view.insert(edit,view.sel()[0].b, self.text)
+        view.end_edit(edit)
+
+        edit = self.view.begin_edit("Removing content")
+        self.view.replace(edit, self.view.sel()[0], "Splitted to: " + file_path)
+        self.view.run_command('toggle_comment')
+        self.view.show_at_center(self.view.sel()[0])
+        self.view.end_edit(edit)
 
     def clear(self):
         if self.view != None:
